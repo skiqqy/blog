@@ -18,6 +18,17 @@ Options
 EOF
 }
 
+# Conifg file
+config ()
+{
+	cat << EOF
+name=Fullname
+alias=Nickname
+twitter=Twitter@
+blogname=YourBlogName
+EOF
+}
+
 # Basic style template.
 style ()
 {
@@ -94,13 +105,19 @@ style ()
 EOF
 }
 
-# Blog template
+# Simple blog template.
 template ()
 {
 	cat << EOF
-{{TITLE}}
+<div class="header">{{TITLE}}</div>
+<div style="text-align:center;display:table;margin:16px auto"><div class=c><pre style="top:0;position:sticky;user-select:none">
+{{LINKS}}
+</div>
+<br>
+<div class=c>
 {{BODY}}
-{{CLOSING}}
+{{DETAILS}}
+</div></div>
 EOF
 }
 
@@ -109,11 +126,16 @@ EOF
 init () {
 	echo "Creating a blog in $1"
 
-	if [ ! "$1" = . ] && ! mkdir "$1"
+	if [ ! "$1" = . ] && ! mkdir "$1" >> /dev/null 2>&1
 	then
 		echo "Cannot create $1, already exists."
 		exit 1
 	fi
+
+	config > "$1"/config
+    echo "Welcome to your blog home page! Edit this file to change your home screen :)" \
+		> "$1"/home.skup
+	mkdir "$1"/blogs
 }
 
 build () {
@@ -121,7 +143,7 @@ build () {
 
 	if [ ! -d "$1" ]
 	then
-		echo "Cannot build blog from $1, does not exist."
+		echo "Cannot build blog from $1, does not exist. See -i flag."
 		exit 1
 	fi
 }
