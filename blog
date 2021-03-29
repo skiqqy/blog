@@ -114,15 +114,33 @@ template ()
 <br>
 <div class=c>
 %%BODY%%
-<pre>%%DETAILS%%</pre>
+<br><br>
+<pre>
+%%DETAILS%%
+</pre>
 </div></div>
 EOF
+}
+
+# Fetch links from a directory
+# Usage: links "/subdirectory" "extension type (eg skup)"
+links () {
+	path=$(realpath "$1")
+	root=${path/"$blog_root"/}
+	shopt -s nullglob
+	for link in "$1"/*."$2"
+	do
+		link=$(basename "$link")
+		name=$(echo "$link" | cut -d\. -f 1)
+		echo "<a href=$root/$name.html>$name</a><br>" # TODO make this an arbatry link with string subbing
+	done
 }
 
 # Usage: skup2html < file.skup > file.html
 skup2html ()
 {
 	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
+	sed -E '/TITLE. (.+)/d' |
 
 	sed -E '/%%BODY%%/r /dev/stdin' "$blog_root"/template.html |
 	sed -E '/%%BODY%%/d' |
@@ -142,7 +160,7 @@ init () {
 
 	config > "$1"/config
 	template > "$1"/template.html
-    echo "Welcome to your blog home page! for help visit a/skiqqy.xyz/here/ :)" \
+    echo -e "TITLE. Home\nWelcome to your blog home page! for help visit a/skiqqy.xyz/here/ :)" \
 		> "$1"/home.skup
 	mkdir "$1"/blogs
 }
@@ -175,7 +193,39 @@ build () {
 		esac
 	done < "$1"/config
 
-	skup2html < "$1"/home.skup > "$1"/index.html
+	TITLE=$(grep -E -o '^TITLE\. .+$' "$1"/home.skup | sed -E 's|TITLE\. (.+)|\1|g')
+	skup2html < "$1"/home.skup | sed -E "s|%%TITLE%%|$TITLE|g" > "$1"/index.html
+
+	# Build html
+	shopt -s nullglob
+	for file in "$1"/blogs/*.skup
+	do
+		FNAME=$(basename "$file" | cut -d\. -f 1)
+		TITLE=$(grep -E -o '^TITLE\. .+$' "$file" | sed -E 's|TITLE\. (.+)|\1|g')
+		skup2html < "$file" | sed -E "s|%%TITLE%%|$TITLE|g" > "$1/blogs/$FNAME.html"
+	done
+
+	# Construct Links
+
+	#links=$(cat <(links "$blog_root" html) <(links "$blog_root/blogs" html))
+	mlinks=$(links "$blog_root" html)
+	blinks=$(links "$blog_root/blogs" html)
+
+	links=$(echo -e "$mlinks\n$blinks")
+	links=${links//\//\\/}
+	links=${links//./\\.}
+	links=${links// /\\ }
+	links=${links//$'\n'/} # Remove newline
+
+	sed -E "s|%%LINKS%%|$links|g" < "$1/index.html" > "$1/buff" && mv "$1/buff" "$1/index.html"
+
+	shopt -s nullglob
+	for file in "$1"/blogs/*.html
+	do
+		FNAME=$(basename "$file" | cut -d\. -f 1)
+		sed -E "s|%%LINKS%%|$links|g" < "$file" > "$1/buff" && \
+			mv "$1/buff" "$1/blogs/$FNAME.html"
+	done
 }
 
 main ()
@@ -186,8 +236,9 @@ main ()
 	then
 		blog_root="${args[$index]}"
 	else
-		blog_root=myblog
+		blog_root=./myblog
 	fi
+	blog_root=$(realpath "$blog_root")
 
 	while getopts "hi" opt
 	do
@@ -212,6 +263,9 @@ main ()
 	else
 		build "$blog_root"
 	fi
+
+	#links "$blog_root/blogs" html
+	#links "$blog_root" html
 
 	#cat <(style) <(template)
 }
