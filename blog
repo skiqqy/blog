@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# Vars
+args=( "$@" )
+VERSION=v0.1
+
+usage ()
+{
+	cat << EOF
+blog $VERSION ~ The simple static blog toolkit.
+
+Usage: blog [options] [blog root]
+
+Options
+-------
+-h    Shows this message.
+-i    init a new blog.
+EOF
+}
+
+# Basic style template.
+style ()
+{
+	cat << EOF
+<!doctype html>
+<html lang=en>
+<title>Skiqqy's Home Page</title><meta charset=utf-8>
+<meta name=Description content="Skiqqy Cochranes Home Page">
+<style>
+	body{
+		overflow-y:scroll;
+		font:16px monospace,monospace;
+		background-color: #000;
+		color: #fff;
+	}
+
+	a{
+		color:#DC143C
+	}
+
+	img{
+		max-width:57ch;
+		display:block;
+		height:auto;
+		width:100%
+	}
+
+	.c{
+		display:table-cell;max-width:999px;max-width:80ch
+	}
+
+	pre{
+		margin:0;overflow-x:hidden
+	}
+
+	@media(max-width:999px){
+		.c{
+			display:block;
+			font-size:1.94vw
+		}
+	}
+
+	.header {
+		padding: 60px;
+		text-align: center;
+		font-size: 30px;
+	}
+
+	.subheader {
+		padding: 60px;
+		text-align: center;
+		font-size: 20px;
+	}
+
+	.box {
+		width: 490px;
+		border: 2.5px dashed white;
+		position:center;
+		text: auto;
+		text-align: left;
+		padding: 35px;
+		margin: 10px;
+	}
+
+	.boxheader {
+		text-align: center;
+		font-size:20px;
+	}
+
+	.dev {
+		color: orange
+	}
+</style>
+EOF
+}
+
+# Blog template
+template ()
+{
+	cat << EOF
+{{TITLE}}
+{{BODY}}
+{{CLOSING}}
+EOF
+}
+
+# Init a blog directory
+# Usage: init /path/to/directory"
+init () {
+	echo "Creating a blog in $1"
+
+	if [ ! "$1" = . ] && ! mkdir "$1"
+	then
+		echo "Cannot create $1, already exists."
+		exit 1
+	fi
+}
+
+build () {
+	echo "Building blog from $1."
+
+	if [ ! -d "$1" ]
+	then
+		echo "Cannot build blog from $1, does not exist."
+		exit 1
+	fi
+}
+
+main ()
+{
+	init=false
+	index=$((${#args[@]} - 1))
+	if [ "${#args}" -ge 1 ] && last=${args[$index]} && [[ ! "$last" =~ ^- ]]
+	then
+		blog_root="${args[$index]}"
+	else
+		blog_root=myblog
+	fi
+
+	while getopts "hi" opt
+	do
+		case "$opt" in
+			h)
+				usage
+				exit
+				;;
+			i)
+				init=true
+				;;
+			*)
+				usage
+				exit 1
+				;;
+		esac
+	done
+
+	if "$init"
+	then
+		init "$blog_root"
+	else
+		build "$blog_root"
+	fi
+
+	#cat <(style) <(template)
+}
+
+main "$@"
