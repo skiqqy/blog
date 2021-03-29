@@ -3,6 +3,11 @@
 # Vars
 args=( "$@" )
 VERSION=v0.1
+name=
+alias=
+twitter=
+blog_root=
+blogname=
 
 usage ()
 {
@@ -29,8 +34,8 @@ blogname=YourBlogName
 EOF
 }
 
-# Basic style template.
-style ()
+# Simple blog template.
+template ()
 {
 	cat << EOF
 <!doctype html>
@@ -102,23 +107,26 @@ style ()
 		color: orange
 	}
 </style>
-EOF
-}
-
-# Simple blog template.
-template ()
-{
-	cat << EOF
-<div class="header">{{TITLE}}</div>
+<div class="header">%%TITLE%%</div>
 <div style="text-align:center;display:table;margin:16px auto"><div class=c><pre style="top:0;position:sticky;user-select:none">
-{{LINKS}}
+%%LINKS%%
 </div>
 <br>
 <div class=c>
-{{BODY}}
-{{DETAILS}}
+%%BODY%%
+<pre>%%DETAILS%%</pre>
 </div></div>
 EOF
+}
+
+# Usage: skup2html < file.skup > file.html
+skup2html ()
+{
+	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
+
+	sed -E '/%%BODY%%/r /dev/stdin' "$blog_root"/template.html |
+	sed -E '/%%BODY%%/d' |
+	sed -E "s|%%DETAILS%%|$name\n$twitter|g"
 }
 
 # Init a blog directory
@@ -133,7 +141,8 @@ init () {
 	fi
 
 	config > "$1"/config
-    echo "Welcome to your blog home page! Edit this file to change your home screen :)" \
+	template > "$1"/template.html
+    echo "Welcome to your blog home page! for help visit a/skiqqy.xyz/here/ :)" \
 		> "$1"/home.skup
 	mkdir "$1"/blogs
 }
@@ -146,6 +155,27 @@ build () {
 		echo "Cannot build blog from $1, does not exist. See -i flag."
 		exit 1
 	fi
+
+	IFS='='
+	while read -r key val
+	do
+		case "$key" in
+			name)
+				name="$val"
+				;;
+			alias)
+				alias="$val"
+				;;
+			twitter)
+				twitter="$val"
+				;;
+			blogname)
+				blogname="$val"
+				;;
+		esac
+	done < "$1"/config
+
+	skup2html < "$1"/home.skup > "$1"/index.html
 }
 
 main ()
