@@ -132,7 +132,7 @@ links () {
 	do
 		link=$(basename "$link")
 		name=$(echo "$link" | cut -d\. -f 1)
-		echo "<a href=$root/$name.html>$name</a><br>" # TODO make this an arbatry link with string subbing
+		echo "<a href=$root/$name.html>$name</a><br>"
 	done
 }
 
@@ -140,6 +140,8 @@ links () {
 skup2html ()
 {
 	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
+	sed -E 's|\\\\|<br>|g' |
+
 	sed -E '/TITLE. (.+)/d' |
 
 	sed -E '/%%BODY%%/r /dev/stdin' "$blog_root"/template.html |
@@ -163,6 +165,29 @@ init () {
     echo -e "TITLE. Home\nWelcome to your blog home page! for help visit a/skiqqy.xyz/here/ :)" \
 		> "$1"/home.skup
 	mkdir "$1"/blogs
+}
+
+# Check if a directory is a valid blog direcory
+# Usage: is_valid_blog_dir "dir"
+is_valid_blog_dir ()
+{
+	if [ ! -f "$1/config" ]
+	then
+		echo "Direcory is missing a config file!"
+		return 1
+	elif [ ! -f "$1/home.skup" ]
+	then
+		echo "Direcory is missing a home.skup file!"
+		return 1
+	elif [ ! -f "$1/template.html" ]
+	then
+		echo "Direcory is missing a template file!"
+		return 1
+	elif [ ! -d "$1/blogs" ]
+	then
+		echo "Direcory is missing a blogs directory!"
+		return 1
+	fi
 }
 
 build () {
@@ -206,8 +231,6 @@ build () {
 	done
 
 	# Construct Links
-
-	#links=$(cat <(links "$blog_root" html) <(links "$blog_root/blogs" html))
 	mlinks=$(links "$blog_root" html)
 	blinks=$(links "$blog_root/blogs" html)
 
@@ -257,17 +280,17 @@ main ()
 		esac
 	done
 
+	if ! is_valid_blog_dir "$blog_root"
+	then
+		exit $?
+	fi
+
 	if "$init"
 	then
 		init "$blog_root"
 	else
 		build "$blog_root"
 	fi
-
-	#links "$blog_root/blogs" html
-	#links "$blog_root" html
-
-	#cat <(style) <(template)
 }
 
 main "$@"
