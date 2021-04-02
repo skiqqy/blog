@@ -139,6 +139,7 @@ links () {
 		link=$(basename "$link")
 		name=$(echo "$link" | cut -d\. -f 1)
 		[[ "$root/$name" = "/template" ]] && continue
+		name=${name// /_}
 		echo "<a href=$root/$name.html>$name</a> <br>"
 	done
 }
@@ -315,7 +316,8 @@ main ()
 		[[ ! "$nr" =~ ^[0-9]+$ ]] && nr=0
 		((nr++))
 		read -p "Enter Title for new blog post: " title
-		file="$blog_root/blogs/$nr"_"$title.skup"
+		file=${title// /_}
+		file="$blog_root/blogs/$nr"_"$file.skup"
 		echo "TITLE. $title" > "$file"
 		$EDITOR "$file"
 	else
