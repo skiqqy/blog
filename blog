@@ -19,7 +19,8 @@ Usage: blog [options] [blog root]
 Options
 -------
 -h    Shows this message.
--i    init a new blog.
+-i    Init a new blog.
+-n    Create a new blog post.
 EOF
 }
 
@@ -145,7 +146,10 @@ links () {
 # Usage: skup2html < file.skup > file.html
 skup2html ()
 {
+	# Markup
 	# Links-> a/skiqqy.xyz/linkname/ -> <a href="https://skiqqy.xyz">linkname</a>
+	# Pictures-> p/picture.png/linkname/ -> <img alt="linkname" src="/picture.png">
+
 	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
 	sed -E 's|p/(.*)/(.*)/|<img alt="\2" src="\1">|g' |
 	sed -E 's|^SBLOCK (.+)\.|<div class=box><div class=boxheader>\1</div><br>|g' |
@@ -156,7 +160,7 @@ skup2html ()
 
 	sed -E '/%%BODY%%/r /dev/stdin' "$blog_root"/template.html |
 	sed -E '/%%BODY%%/d' |
-	sed -E "s|%%DETAILS%%|$name\n$twitter|g"
+	sed -E "s|%%DETAILS%%|$name\n<a href=\"https://twitter.com/${twitter/\@/}\">$twitter</a>|g"
 }
 
 # Init a blog directory
@@ -268,6 +272,7 @@ main ()
 {
 	init=false
 	index=$((${#args[@]} - 1))
+	new=false
 	if [ "${#args}" -ge 1 ] && last=${args[$index]} && [[ ! "$last" =~ ^- ]]
 	then
 		blog_root="${args[$index]}"
@@ -276,7 +281,7 @@ main ()
 	fi
 	blog_root=$(realpath "$blog_root")
 
-	while getopts "hi" opt
+	while getopts "hin" opt
 	do
 		case "$opt" in
 			h)
@@ -285,6 +290,9 @@ main ()
 				;;
 			i)
 				init=true
+				;;
+			n)
+				new=true
 				;;
 			*)
 				usage
@@ -301,6 +309,15 @@ main ()
 	if "$init"
 	then
 		init "$blog_root"
+	elif "$new"
+	then
+		nr=$(basename "$(ls -1v "$blog_root"/blogs/*.skup 2> /dev/null | tail -1 | cut -d_ -f 1)")
+		[[ ! "$nr" =~ ^[0-9]+$ ]] && nr=0
+		((nr++))
+		read -p "Enter Title for new blog post: " title
+		file="$blog_root/blogs/$nr"_"$title.skup"
+		echo "TITLE. $title" > "$file"
+		$EDITOR "$file"
 	else
 		build "$blog_root"
 	fi
