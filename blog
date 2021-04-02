@@ -132,7 +132,8 @@ links () {
 	do
 		link=$(basename "$link")
 		name=$(echo "$link" | cut -d\. -f 1)
-		echo "<a href=$root/$name.html>$name</a><br>"
+		[[ "$root/$name" = "/template" ]] && continue
+		echo "<a href=$root/$name.html>$name</a> <br>"
 	done
 }
 
@@ -140,6 +141,8 @@ links () {
 skup2html ()
 {
 	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
+	sed -E 's|^SBLOCK (.+)\.|<div class=box><div class=boxheader>\1</div><br>|g' |
+	sed -E 's|^EBLOCK|</div>|g' |
 	sed -E 's|\\\\|<br>|g' |
 
 	sed -E '/TITLE. (.+)/d' |
@@ -246,7 +249,9 @@ build () {
 	for file in "$1"/blogs/*.html
 	do
 		FNAME=$(basename "$file" | cut -d\. -f 1)
-		sed -E "s|%%LINKS%%|$links|g" < "$file" > "$1/buff" && \
+		#sed -E "s|%%LINKS%%|$links|g" < "$file" > "$1/buff" && \
+			#mv "$1/buff" "$1/blogs/$FNAME.html"
+		sed -E "s|%%LINKS%%|<a href=\/>index<\/a> |g" < "$file" > "$1/buff" && \
 			mv "$1/buff" "$1/blogs/$FNAME.html"
 	done
 }
