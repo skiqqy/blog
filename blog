@@ -34,9 +34,7 @@ blogname=YourBlogName
 EOF
 }
 
-# Simple blog template.
-template ()
-{
+style () {
 	cat << EOF
 <!doctype html>
 <html lang=en>
@@ -107,6 +105,13 @@ template ()
 		color: orange
 	}
 </style>
+EOF
+}
+
+# Simple blog template.
+template ()
+{
+	cat << EOF
 <div class="header">%%TITLE%%</div>
 <div style="text-align:center;display:table;margin:16px auto"><div class=c><pre style="top:0;position:sticky;user-select:none">
 %%LINKS%%
@@ -140,7 +145,9 @@ links () {
 # Usage: skup2html < file.skup > file.html
 skup2html ()
 {
+	# Links-> a/skiqqy.xyz/linkname/ -> <a href="https://skiqqy.xyz">linkname</a>
 	sed -E 's|a/(.*)/(.*)/|<a href="https://\1">\2</a>|g' |
+	sed -E 's|p/(.*)/(.*)/|<img alt="\2" src="\1">|g' |
 	sed -E 's|^SBLOCK (.+)\.|<div class=box><div class=boxheader>\1</div><br>|g' |
 	sed -E 's|^EBLOCK|</div>|g' |
 	sed -E 's|\\\\|<br>|g' |
@@ -164,7 +171,8 @@ init () {
 	fi
 
 	config > "$1"/config
-	template > "$1"/template.html
+	#template > "$1"/template.html
+	cat <(style) <(template) > "$1"/template.html
     echo -e "TITLE. Home\nWelcome to your blog home page! for help visit a/skiqqy.xyz/here/ :)" \
 		> "$1"/home.skup
 	mkdir "$1"/blogs
@@ -285,7 +293,7 @@ main ()
 		esac
 	done
 
-	if ! is_valid_blog_dir "$blog_root"
+	if ! "$init" && ! is_valid_blog_dir "$blog_root"
 	then
 		exit $?
 	fi
